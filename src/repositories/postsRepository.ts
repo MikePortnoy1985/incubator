@@ -5,6 +5,7 @@ import { RequestType } from '../constants';
 
 import { ICreatePostData } from './interfaces';
 
+import BloggersRepository from './bloggersRepository';
 import POSTS from '../mocks/postsMock.json';
 
 class PostsRepository {
@@ -33,7 +34,7 @@ class PostsRepository {
       title: title.trim(),
       content: content.trim(),
       bloggerId: bloggerId,
-      bloggerName: bloggerName.trim(),
+      bloggerName: bloggerName?.trim(),
       shortDescription: shortDescription.trim(),
     };
     this.posts.push(newPost);
@@ -82,6 +83,9 @@ class PostsRepository {
     const hasShortDescription = request.body.shortDescription?.trim().length;
     const hasBloggerName = request.body.bloggerName?.trim().length;
     const hasBloggerId = request.body.bloggerId > 0;
+    const hasExistingBloggerId = BloggersRepository.currentBloggersId.includes(
+      request.body.bloggerId
+    );
 
     const wrongEntityText = 'Wrong entity format';
 
@@ -94,6 +98,7 @@ class PostsRepository {
             hasBloggerId,
             hasBloggerName,
             hasShortDescription,
+            hasExistingBloggerId,
           ].some((value) => value === false)
         ) {
           return response.status(400).send(wrongEntityText);

@@ -14,6 +14,10 @@ class BloggersRepository {
     this.bloggers = bloggers;
   }
 
+  get currentBloggersId() {
+    return this.bloggers.map(({ id }) => id);
+  }
+
   getBloggers = (id?: string) => {
     if (id) {
       const blogger = this.bloggers.find(
