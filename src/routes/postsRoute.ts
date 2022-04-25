@@ -23,29 +23,35 @@ postsRouter.get('/:id', (request: Request, response: Response) => {
   response.status(404).send('Post not found');
 });
 
-postsRouter.post('/', (request: Request, response: Response) => {
-  PostsRepository.errorHandler(request, response, RequestType.Post);
+postsRouter.post(
+  '/',
+  PostsRepository.schema,
+  PostsRepository.validateResult,
+  (request: Request, response: Response) => {
+    const newPost = PostsRepository.createPost(request.body);
 
-  const newPost = PostsRepository.createPost(request.body);
-
-  response.status(201).send(newPost);
-});
-
-postsRouter.put('/:id', (request: Request, response: Response) => {
-  const isPostUpdated = PostsRepository.updatePost(
-    request.body,
-    request.params.id
-  );
-
-  if (!isPostUpdated) {
-    response.status(404).send('Not found');
-    return;
+    response.status(201).send(newPost);
   }
+);
 
-  PostsRepository.errorHandler(request, response, RequestType.Put);
+postsRouter.put(
+  '/:id',
+  PostsRepository.schema,
+  PostsRepository.validateResult,
+  (request: Request, response: Response) => {
+    const isPostUpdated = PostsRepository.updatePost(
+      request.body,
+      request.params.id
+    );
 
-  response.send(204);
-});
+    if (!isPostUpdated) {
+      response.status(404).send('Not found');
+      return;
+    }
+
+    response.sendStatus(204);
+  }
+);
 
 postsRouter.delete('/:id', (request: Request, response: Response) => {
   const isPostDeleted = PostsRepository.deletePost(request.params.id);
@@ -55,5 +61,5 @@ postsRouter.delete('/:id', (request: Request, response: Response) => {
     return;
   }
 
-  response.send(204);
+  response.sendStatus(204);
 });

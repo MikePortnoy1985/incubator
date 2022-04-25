@@ -5,7 +5,8 @@
   "license": "MIT",
   "scripts": {
     "build": "tsc --build",
-    "clean": "rm -r dist"
+    "clean": "rm -r incubator-demo/src",
+    "debug": "nodemon --inspect src/server.ts"
   },
   "dependencies": {
     "body-parser": "^1.19.2",

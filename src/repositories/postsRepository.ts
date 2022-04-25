@@ -1,7 +1,7 @@
-import { Request, Response } from 'express';
+import { NextFunction, Request, Response } from 'express';
+import { body, validationResult, CustomValidator } from 'express-validator';
 
-import { IPostBody } from '../interfaces';
-import { RequestType } from '../constants';
+import { IBloggerBody, IPostBody } from '../interfaces';
 
 import { ICreatePostData } from './interfaces';
 
@@ -11,9 +11,38 @@ import POSTS from '../mocks/postsMock.json';
 class PostsRepository {
   posts: Array<IPostBody> = [];
 
+  hasExistingBloggerId: CustomValidator = (id: number) => {
+    if (!BloggersRepository.currentBloggersId.includes(id)) {
+      return Promise.reject('Invalid blogger id');
+    }
+
+    return true;
+  };
+
+  schema = [
+    body('title').exists().isLength({ min: 1 }),
+    body('content').exists().isLength({ min: 1 }),
+    body('shortDescription').exists().isLength({ min: 1 }),
+    body('bloggerId').exists().isInt({ min: 1 }),
+    body('bloggerId').custom(this.hasExistingBloggerId),
+  ];
+
   constructor(posts: Array<IPostBody>) {
     this.posts = posts;
   }
+
+  validateResult = (
+    request: Request,
+    response: Response,
+    next: NextFunction
+  ) => {
+    const errors = validationResult(request);
+    if (!errors.isEmpty()) {
+      return response.status(400).json({ errors: errors.array() });
+    }
+
+    next();
+  };
 
   getPosts = (id?: string) => {
     if (id) {
@@ -27,14 +56,16 @@ class PostsRepository {
   };
 
   createPost = (data: ICreatePostData) => {
-    const { title, content, bloggerId, bloggerName, shortDescription } = data;
+    const { title, content, bloggerId, shortDescription } = data;
 
     const newPost = {
-      id: this.posts.length + 100,
+      id: this.posts.length + 10,
       title: title.trim(),
       content: content.trim(),
       bloggerId: bloggerId,
-      bloggerName: bloggerName?.trim(),
+      bloggerName: BloggersRepository.bloggers.find(
+        (blogger: IBloggerBody) => blogger.id === bloggerId
+      )!.name,
       shortDescription: shortDescription.trim(),
     };
     this.posts.push(newPost);
@@ -48,7 +79,7 @@ class PostsRepository {
 
     const post = this.posts.find((post: IPostBody) => post.id === Number(id));
 
-    if (!post) return false;
+    if (!post || post.bloggerId !== bloggerId) return false;
 
     post.title = title ? title : post.title;
     post.content = content ? content : post.content;
@@ -71,55 +102,6 @@ class PostsRepository {
     }
 
     return true;
-  };
-
-  errorHandler = (
-    request: Request,
-    response: Response,
-    requestType: RequestType
-  ) => {
-    const hasTitle = request.body.title?.trim().length;
-    const hasContent = request.body.content?.trim().length;
-    const hasShortDescription = request.body.shortDescription?.trim().length;
-    const hasBloggerName = request.body.bloggerName?.trim().length;
-    const hasBloggerId = request.body.bloggerId > 0;
-    const hasExistingBloggerId = BloggersRepository.currentBloggersId.includes(
-      request.body.bloggerId
-    );
-
-    const wrongEntityText = 'Wrong entity format';
-
-    switch (requestType) {
-      case RequestType.Post: {
-        if (
-          [
-            hasTitle,
-            hasContent,
-            hasBloggerId,
-            hasBloggerName,
-            hasShortDescription,
-            hasExistingBloggerId,
-          ].some((value) => value === false)
-        ) {
-          return response.status(400).send(wrongEntityText);
-        }
-      }
-      case RequestType.Put: {
-        if (
-          [
-            hasTitle,
-            hasContent,
-            hasBloggerId,
-            hasBloggerName,
-            hasShortDescription,
-          ].every((value) => value === false)
-        ) {
-          return response.status(400).send(wrongEntityText);
-        }
-      }
-      default:
-        return false;
-    }
   };
 }
 
